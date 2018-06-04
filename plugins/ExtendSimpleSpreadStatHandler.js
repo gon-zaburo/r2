@@ -3,7 +3,7 @@ const ss = require('simple-statistics');
 const { getLogger } = require('@bitr/logger');
 
 const precision = 3;
-const defaultMinTargetProfitPercent = 0.2
+const defaultMinTargetProfitPercent = 0.01
 
 class ExtendSimpleSpreadStatHandler {
   // Constructor is called when initial snapshot of spread stat history has arrived.
@@ -38,9 +38,10 @@ class ExtendSimpleSpreadStatHandler {
     const n = this.sampleSize;
     const mean = this.profitPercentMean;
     const standardDeviation = Math.sqrt(this.profitPercentVariance * n/(n-1));
-    const minTargetProfitPercent = _.round(mean + standardDeviation, precision);
+    var minTargetProfitPercent = _.round(mean + standardDeviation, precision);
     if (_.isNaN(minTargetProfitPercent) || minTargetProfitPercent < 0) {
-      return { "minTargetProfitPercent": defaultMinTargetProfitPercent };
+      this.log.info(`minTargetProfitPercent value is ${minTargetProfitPercent}. but...`);
+      minTargetProfitPercent = defaultMinTargetProfitPercent;
     }
     this.log.info(
       `μ: ${_.round(mean, precision)}, σ: ${_.round(
