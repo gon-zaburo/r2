@@ -1,4 +1,4 @@
-﻿import { injectable, inject } from 'inversify';
+import { injectable, inject } from 'inversify';
 import {
   ConfigStore,
   QuoteSide,
@@ -74,6 +74,11 @@ export default class SpreadAnalyzer {
     const allowedLongSize = positionMap[ask.broker].allowedLongSize;
     let targetVolume = _.min([availableVolume, config.maxSize, allowedShortSize, allowedLongSize]) as number;
     targetVolume = _.floor(targetVolume, LOT_MIN_DECIMAL_PLACE);
+    const targetVolumeCandidate = _.floor(availableVolume * config.maxTargetVolumePercent / 100, LOT_MIN_DECIMAL_PLACE);
+    if(targetVolumeCandidate < targetVolume && targetVolumeCandidate > config.minSize) {
+      targetVolume = targetVolumeCandidate;
+    }
+
     if (closingPair) {
       targetVolume = closingPair[0].size;
     }
@@ -114,8 +119,8 @@ export default class SpreadAnalyzer {
       })
       .value();
     const flattened = _(byBroker)
-      .map((v, k) => [v.ask, v.bid])  
-      .flatten()      
+      .map((v, k) => [v.ask, v.bid])
+      .flatten()
       .filter(q => q !== undefined)
       .value() as Quote[];
     const { ask: bestAsk, bid: bestBid } = this.getBest(flattened) as { ask: Quote, bid: Quote };
