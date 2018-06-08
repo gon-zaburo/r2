@@ -9,6 +9,7 @@ options.enabled = false;
 
 const config = require('./config_test.json');
 config.maxSize = 0.5;
+config.maxTargetVolumePercent = 50;
 const configStore = { config } as ConfigStore;
 const positionMap = {
   Coincheck: {
@@ -43,6 +44,26 @@ describe('Spread Analyzer', () => {
     expect(result.bid.volume).toBe(4);
     expect(result.invertedSpread).toBe(-0.5);
     expect(result.targetVolume).toBe(0.5);
+    expect(result.targetProfit).toBeCloseTo(0);
+  });
+
+  test('analyze with targetVolume / maxTargetVolumePercent greater than availableVolume', async () => {
+    const quotes = [
+      toQuote('Coincheck', QuoteSide.Ask, 3, 0.1),
+      toQuote('Coincheck', QuoteSide.Bid, 2, 0.2),
+      toQuote('Quoine', QuoteSide.Ask, 3.5, 0.3),
+      toQuote('Quoine', QuoteSide.Bid, 2.5, 0.4)
+    ];
+    const target = new SpreadAnalyzer(configStore);
+    const result = await target.analyze(quotes, positionMap);
+    expect(result.ask.broker).toBe('Coincheck');
+    expect(result.ask.price).toBe(3);
+    expect(result.ask.volume).toBe(0.1);
+    expect(result.bid.broker).toBe('Quoine');
+    expect(result.bid.price).toBe(2.5);
+    expect(result.bid.volume).toBe(0.4);
+    expect(result.invertedSpread).toBe(-0.5);
+    expect(result.targetVolume).toBe(0.05);
     expect(result.targetProfit).toBeCloseTo(0);
   });
 
@@ -213,7 +234,7 @@ describe('Spread Analyzer', () => {
 
   test('getSpreadStat no bid in one broker', async () => {
     const quotes = [
-      toQuote('Coincheck', QuoteSide.Ask, 3, 1),      
+      toQuote('Coincheck', QuoteSide.Ask, 3, 1),
       toQuote('Coincheck', QuoteSide.Bid, 2, 2),
       toQuote('Quoine', QuoteSide.Ask, 3.5, 3)
     ];
